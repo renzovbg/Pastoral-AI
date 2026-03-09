@@ -63,7 +63,7 @@ const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
   const QuickAction = ({ icon: Icon, label, onClick, colorClass }: any) => (
     <button 
       onClick={onClick}
-      className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-church-100 transition-all group"
+      className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-church-100 transition-all group cursor-pointer"
     >
       <div className={`p-3 rounded-xl mb-3 ${colorClass} group-hover:scale-110 transition-transform`}>
         <Icon size={20} />
@@ -202,7 +202,7 @@ const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
         <div className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="text-xl font-bold text-gray-900">Próximos {labels.encontros}</h3>
-            <button type="button" onClick={() => setView(ViewState.ENCONTROS)} className="text-sm font-medium text-church-600 hover:text-church-800 transition-colors">Ver calendário completo</button>
+            <button type="button" onClick={() => setView(ViewState.ENCONTROS)} className="text-sm font-medium text-church-600 hover:text-church-800 transition-colors cursor-pointer">Ver calendário completo</button>
           </div>
           
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -258,7 +258,7 @@ const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
               {isCoordenador && (
                 <button 
                   onClick={() => setIsAvisoModalOpen(true)}
-                  className="w-8 h-8 flex items-center justify-center bg-church-50 text-church-600 rounded-full hover:bg-church-100 transition-colors"
+                  className="w-8 h-8 flex items-center justify-center bg-church-50 text-church-600 rounded-full hover:bg-church-100 transition-colors cursor-pointer"
                 >
                   <Plus size={16} />
                 </button>
@@ -385,7 +385,7 @@ const Dashboard: React.FC<DashboardProps> = ({ setView }) => {
                 </div>
                 <button 
                   type="submit"
-                  className="w-full bg-church-600 text-white py-3.5 rounded-xl font-bold hover:bg-church-700 transition-all shadow-lg shadow-church-200 transform active:scale-95"
+                  className="w-full bg-church-600 text-white py-3.5 rounded-xl font-bold hover:bg-church-700 transition-all shadow-lg shadow-church-200 transform active:scale-95 cursor-pointer"
                 >
                    Publicar Aviso
                 </button>

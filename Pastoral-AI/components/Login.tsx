@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Church, Lock, Mail, Loader2, Info, BookOpen, HeartHandshake, Users, ChevronRight, Sparkles, UserPlus } from 'lucide-react';
+import { Church, Lock, Mail, Loader2, Info, BookOpen, HeartHandshake, Users, ChevronRight, Sparkles, UserPlus, Shield, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { usePastoral } from '../contexts/PastoralContext';
-import { PastoralType } from '../types';
+import { PastoralType, UserRole } from '../types';
 import { PASTORAL_CONFIGS } from '../constants';
 import { isSupabaseConfigured } from '../services/supabaseClient';
 
@@ -28,16 +28,13 @@ const Login: React.FC = () => {
   const [step, setStep] = useState<'pastoral' | 'credentials'>('pastoral');
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [selectedPastoral, setSelectedPastoral] = useState<PastoralType | null>(null);
+  const [selectedRole, setSelectedRole] = useState<'coordenador' | 'lider'>('lider');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nome, setNome] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
-  const handleSelectPastoral = (type: PastoralType) => {
-    setSelectedPastoral(type);
-  };
 
   const handleContinue = () => {
     if (selectedPastoral) {
@@ -46,11 +43,19 @@ const Login: React.FC = () => {
     }
   };
 
+  const getRoleLabel = () => {
+    if (!selectedPastoral) return { coordLabel: 'Coordenador', liderLabel: 'Líder' };
+    const cfg = PASTORAL_CONFIGS[selectedPastoral].labels;
+    return { coordLabel: cfg.coordenador, liderLabel: cfg.lider };
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     setSuccess('');
+
+    const pastoralValue = selectedPastoral || PastoralType.CATEQUESE;
 
     if (mode === 'register') {
       if (!nome.trim()) {
@@ -63,7 +68,7 @@ const Login: React.FC = () => {
         setLoading(false);
         return;
       }
-      const result = await register(email, password, nome);
+      const result = await register(email, password, nome, selectedRole, pastoralValue);
       if (!result.success) {
         setError(result.error || 'Erro ao registrar.');
       } else {
@@ -73,7 +78,7 @@ const Login: React.FC = () => {
         setPassword('');
       }
     } else {
-      const result = await login(email, password);
+      const result = await login(email, password, selectedRole, pastoralValue);
       if (!result.success) {
         setError(result.error || 'Erro ao fazer login.');
       }
@@ -81,6 +86,8 @@ const Login: React.FC = () => {
 
     setLoading(false);
   };
+
+  const { coordLabel, liderLabel } = getRoleLabel();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-church-50 via-white to-gray-50 flex items-center justify-center p-4">
@@ -111,8 +118,8 @@ const Login: React.FC = () => {
                   return (
                     <button
                       key={type}
-                      onClick={() => handleSelectPastoral(type)}
-                      className={`relative p-5 rounded-xl border-2 transition-all duration-200 text-left group
+                      onClick={() => setSelectedPastoral(type)}
+                      className={`relative p-5 rounded-xl border-2 transition-all duration-200 text-left group cursor-pointer
                         ${isSelected
                           ? `${colors.bg} ${colors.border} ring-2 ${colors.ring} shadow-md scale-[1.02]`
                           : 'border-gray-100 hover:border-gray-200 hover:shadow-sm bg-white'
@@ -143,7 +150,7 @@ const Login: React.FC = () => {
               <button
                 onClick={handleContinue}
                 disabled={!selectedPastoral}
-                className="w-full mt-6 bg-church-600 text-white py-3.5 rounded-xl font-bold hover:bg-church-700 transition-all shadow-lg shadow-church-200 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transform active:scale-[0.98]"
+                className="w-full mt-6 bg-church-600 text-white py-3.5 rounded-xl font-bold hover:bg-church-700 transition-all shadow-lg shadow-church-200 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed transform active:scale-[0.98] cursor-pointer"
               >
                 Continuar <ChevronRight size={18} className="ml-1" />
               </button>
@@ -163,7 +170,7 @@ const Login: React.FC = () => {
                 </div>
                 <button
                   onClick={() => setStep('pastoral')}
-                  className="text-xs font-medium text-gray-500 hover:text-gray-700 underline"
+                  className="text-xs font-medium text-gray-500 hover:text-gray-700 underline cursor-pointer"
                 >
                   Alterar
                 </button>
@@ -176,18 +183,59 @@ const Login: React.FC = () => {
                 <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
                   <button
                     onClick={() => { setMode('login'); setError(''); setSuccess(''); }}
-                    className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all ${mode === 'login' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+                    className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all cursor-pointer ${mode === 'login' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
                   >
                     Entrar
                   </button>
                   <button
                     onClick={() => { setMode('register'); setError(''); setSuccess(''); }}
-                    className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${mode === 'register' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+                    className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${mode === 'register' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
                   >
                     <UserPlus size={14} /> Criar Conta
                   </button>
                 </div>
               )}
+
+              {/* Role Selector */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Entrar como</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRole('coordenador')}
+                    className={`p-3.5 rounded-xl border-2 transition-all text-left cursor-pointer flex items-center gap-3
+                      ${selectedRole === 'coordenador'
+                        ? 'border-church-500 bg-church-50 ring-1 ring-church-500'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                      }`}
+                  >
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${selectedRole === 'coordenador' ? 'bg-church-100 text-church-600' : 'bg-gray-100 text-gray-400'}`}>
+                      <Shield size={20} />
+                    </div>
+                    <div>
+                      <p className={`font-bold text-sm ${selectedRole === 'coordenador' ? 'text-church-700' : 'text-gray-700'}`}>{coordLabel}</p>
+                      <p className="text-[10px] text-gray-500">Gestão completa</p>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRole('lider')}
+                    className={`p-3.5 rounded-xl border-2 transition-all text-left cursor-pointer flex items-center gap-3
+                      ${selectedRole === 'lider'
+                        ? 'border-church-500 bg-church-50 ring-1 ring-church-500'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                      }`}
+                  >
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${selectedRole === 'lider' ? 'bg-church-100 text-church-600' : 'bg-gray-100 text-gray-400'}`}>
+                      <User size={20} />
+                    </div>
+                    <div>
+                      <p className={`font-bold text-sm ${selectedRole === 'lider' ? 'text-church-700' : 'text-gray-700'}`}>{liderLabel}</p>
+                      <p className="text-[10px] text-gray-500">Minha {selectedPastoral ? PASTORAL_CONFIGS[selectedPastoral].labels.turma.toLowerCase() : 'turma'}</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 {mode === 'register' && (
@@ -254,13 +302,13 @@ const Login: React.FC = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-church-600 text-white py-3.5 rounded-xl font-bold hover:bg-church-700 transition-all shadow-lg shadow-church-200 flex items-center justify-center disabled:opacity-70 transform active:scale-[0.98]"
+                  className="w-full bg-church-600 text-white py-3.5 rounded-xl font-bold hover:bg-church-700 transition-all shadow-lg shadow-church-200 flex items-center justify-center disabled:opacity-70 transform active:scale-[0.98] cursor-pointer"
                 >
                   {loading ? <Loader2 size={20} className="animate-spin" /> : mode === 'register' ? 'Criar Conta' : 'Acessar Sistema'}
                 </button>
               </form>
 
-              {/* Mock credentials - only when Supabase is not configured */}
+              {/* Mock credentials */}
               {!hasSupabase && (
                 <div className="mt-6 pt-6 border-t border-gray-100">
                   <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
@@ -268,11 +316,11 @@ const Login: React.FC = () => {
                   </div>
                   <p className="text-xs text-center text-gray-500 mb-2">Credenciais de Teste:</p>
                   <div className="flex flex-col space-y-2 text-xs">
-                    <button onClick={() => setEmail('coord@paroquia.com')} className="bg-gray-50 p-2.5 rounded-lg text-gray-600 hover:bg-gray-100 text-left border border-gray-200 transition-colors">
+                    <button onClick={() => { setEmail('coord@paroquia.com'); setSelectedRole('coordenador'); }} className="bg-gray-50 p-2.5 rounded-lg text-gray-600 hover:bg-gray-100 text-left border border-gray-200 transition-colors cursor-pointer">
                       <strong>Coordenador:</strong> coord@paroquia.com
                     </button>
-                    <button onClick={() => setEmail('cat@paroquia.com')} className="bg-gray-50 p-2.5 rounded-lg text-gray-600 hover:bg-gray-100 text-left border border-gray-200 transition-colors">
-                      <strong>Líder:</strong> cat@paroquia.com
+                    <button onClick={() => { setEmail('cat@paroquia.com'); setSelectedRole('lider'); }} className="bg-gray-50 p-2.5 rounded-lg text-gray-600 hover:bg-gray-100 text-left border border-gray-200 transition-colors cursor-pointer">
+                      <strong>{liderLabel}:</strong> cat@paroquia.com
                     </button>
                   </div>
                 </div>

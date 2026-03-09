@@ -6,8 +6,8 @@ import { MOCK_USERS } from '../constants';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (email: string, password: string, nome: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string, role?: string, pastoralType?: string) => Promise<{ success: boolean; error?: string }>;
+  register: (email: string, password: string, nome: string, role?: string, pastoralType?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -127,11 +127,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return null;
   }
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const login = async (email: string, password: string, role?: string, pastoralType?: string): Promise<{ success: boolean; error?: string }> => {
     if (!useSupabase) {
       await new Promise(resolve => setTimeout(resolve, 500));
       const foundUser = MOCK_USERS[email];
       if (foundUser) {
+        if (role) foundUser.role = roleMap[role] || foundUser.role;
+        if (pastoralType) foundUser.pastoral_type = pastoralType as PastoralType;
         setUser(foundUser);
         return { success: true };
       }
@@ -155,19 +157,36 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         const profile = await fetchProfile(data.user.id);
         if (profile) {
-          setUser(mapProfileToUser(profile, email));
+          const mappedUser = mapProfileToUser(profile, email);
+          if (role) mappedUser.role = roleMap[role] || mappedUser.role;
+          if (pastoralType) mappedUser.pastoral_type = pastoralType as PastoralType;
+          setUser(mappedUser);
+
+          // Atualizar role e pastoral no perfil se diferente
+          if (role || pastoralType) {
+            const updates: Record<string, string> = {};
+            if (role) updates.role = role;
+            if (pastoralType) updates.pastoral_type = pastoralType;
+            supabase.from('profiles').update(updates).eq('id', data.user.id).then(() => {});
+          }
         } else {
-          setUser(authUserToMinimalUser(data.user.id, email));
+          const minUser = authUserToMinimalUser(data.user.id, email);
+          if (role) minUser.role = roleMap[role] || minUser.role;
+          if (pastoralType) minUser.pastoral_type = pastoralType as PastoralType;
+          setUser(minUser);
         }
       } catch (_) {
-        setUser(authUserToMinimalUser(data.user.id, email));
+        const minUser = authUserToMinimalUser(data.user.id, email);
+        if (role) minUser.role = roleMap[role] || minUser.role;
+        if (pastoralType) minUser.pastoral_type = pastoralType as PastoralType;
+        setUser(minUser);
       }
     }
 
     return { success: true };
   };
 
-  const register = async (email: string, password: string, nome: string): Promise<{ success: boolean; error?: string }> => {
+  const register = async (email: string, password: string, nome: string, role?: string, pastoralType?: string): Promise<{ success: boolean; error?: string }> => {
     if (!useSupabase) {
       return { success: false, error: 'Supabase não configurado.' };
     }
@@ -184,8 +203,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         id: data.user.id,
         nome,
         email,
-        role: 'lider',
-        pastoral_type: 'catequese',
+        role: role || 'lider',
+        pastoral_type: pastoralType || 'catequese',
       });
     }
 

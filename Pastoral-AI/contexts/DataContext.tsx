@@ -12,6 +12,7 @@ import {
 } from '../types';
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 import { useAuth } from './AuthContext';
+import { usePastoral } from './PastoralContext';
 import {
   MOCK_CATEQUIZANDOS,
   MOCK_CATEQUISTAS,
@@ -175,6 +176,7 @@ function rowToTurma(row: any): Turma {
 
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
+  const { pastoralType: activePastoralType } = usePastoral();
   const useDb = isSupabaseConfigured();
 
   const [loading, setLoading] = useState(false);
@@ -189,7 +191,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [paroquia, setParoquia] = useState<Paroquia>(MOCK_PAROQUIA);
 
   const paroquiaId = user?.parish_id || '';
-  const pastoralType = user?.pastoral_type || 'catequese';
+  const pastoralType = activePastoralType || user?.pastoral_type || 'catequese';
 
   /** Quando o usuário não tem paróquia (perfil mínimo), usa a primeira paróquia do banco para inserir e carregar participantes/líderes. */
   const getEffectiveParoquiaId = useCallback(async (): Promise<string | null> => {
@@ -278,10 +280,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [useDb, paroquiaId, pastoralType, getEffectiveParoquiaId]);
 
   useEffect(() => {
-    if (user && useDb) {
+    if (user) {
       refreshData();
     }
-  }, [user, refreshData]);
+  }, [user, refreshData, pastoralType]);
 
   // ─── CRUD: Participantes ──────────────────────────────────────────────────
 
